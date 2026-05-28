@@ -64,24 +64,17 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout do Scanner
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ github.action_repository }}
-        ref: ${{ github.action_ref }}
-        path: .sqli-scanner
-
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
         cache: "pip"
-        cache-dependency-path: .sqli-scanner/requirements.txt
+        cache-dependency-path: ${{ github.action_path }}/requirements.txt
 
     - name: Instalar dependências do Scanner
       shell: bash
       run: |
-        pip install --no-cache-dir -r .sqli-scanner/requirements.txt
+        pip install --no-cache-dir -r "$GITHUB_ACTION_PATH/requirements.txt"
 
     - name: Baixar/preparar Swagger
       id: swagger
@@ -89,8 +82,8 @@ runs:
       run: |
         SWAGGER_INPUT="${{ inputs.swagger-url }}"
         if [[ "$SWAGGER_INPUT" == http://* ]] || [[ "$SWAGGER_INPUT" == https://* ]]; then
-          curl -sSfL "$SWAGGER_INPUT" -o .sqli-scanner/swagger_spec.json
-          echo "path=swagger_spec.json" >> "$GITHUB_OUTPUT"
+          curl -sSfL "$SWAGGER_INPUT" -o "$RUNNER_TEMP/swagger_spec.json"
+          echo "path=$RUNNER_TEMP/swagger_spec.json" >> "$GITHUB_OUTPUT"
         else
           echo "path=${{ github.workspace }}/$SWAGGER_INPUT" >> "$GITHUB_OUTPUT"
         fi
@@ -98,20 +91,22 @@ runs:
     - name: Executar Scan
       id: scan
       shell: bash
-      working-directory: .sqli-scanner
+      working-directory: ${{ github.action_path }}
       run: |
-        AUTH_ARGS=""
+        SCAN_ARGS=(
+          scan
+          --swagger "${{ steps.swagger.outputs.path }}"
+          --base-url "${{ inputs.base-url }}"
+          --num-payloads "${{ inputs.num-payloads }}"
+          --temperature "${{ inputs.temperature }}"
+          --output "${{ github.workspace }}/${{ inputs.report-path }}"
+        )
+
         if [ -n "${{ inputs.auth-token }}" ]; then
-          AUTH_ARGS="--auth-token \"${{ inputs.auth-token }}\""
+          SCAN_ARGS+=(--auth-token "${{ inputs.auth-token }}")
         fi
 
-        python main.py scan \
-          --swagger "${{ steps.swagger.outputs.path }}" \
-          --base-url "${{ inputs.base-url }}" \
-          --num-payloads "${{ inputs.num-payloads }}" \
-          --temperature "${{ inputs.temperature }}" \
-          --output "${{ github.workspace }}/${{ inputs.report-path }}" \
-          $AUTH_ARGS
+        python main.py "${SCAN_ARGS[@]}"
 
     - name: Upload relatório como artefato
       if: always()
