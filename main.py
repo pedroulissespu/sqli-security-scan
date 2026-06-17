@@ -18,6 +18,12 @@ def cmd_train(args):
         config["epochs"] = args.epochs
     if args.batch_size:
         config["batch_size"] = args.batch_size
+    config["train_ratio"] = args.train_ratio
+    config["val_ratio"] = args.val_ratio
+    config["test_ratio"] = args.test_ratio
+    config["split_seed"] = args.split_seed
+    config["validation_max_batches"] = args.validation_max_batches
+    config["test_max_batches"] = args.test_max_batches
 
     train_gan(
         datasets_dir=args.datasets_dir,
@@ -108,6 +114,12 @@ def main():
     train_parser.add_argument("--epochs", type=int, default=None, help="Número de épocas")
     train_parser.add_argument("--batch-size", type=int, default=None, help="Tamanho do batch")
     train_parser.add_argument("--resume", default=None, help="Caminho do checkpoint para continuar treino")
+    train_parser.add_argument("--train-ratio", type=float, default=0.7, help="Proporção do conjunto de treino")
+    train_parser.add_argument("--val-ratio", type=float, default=0.15, help="Proporção do conjunto de validação")
+    train_parser.add_argument("--test-ratio", type=float, default=0.15, help="Proporção do conjunto de teste")
+    train_parser.add_argument("--split-seed", type=int, default=42, help="Semente aleatória da divisão treino/validação/teste")
+    train_parser.add_argument("--validation-max-batches", type=int, default=8, help="Máximo de batches para validar por época")
+    train_parser.add_argument("--test-max-batches", type=int, default=None, help="Máximo de batches para avaliar no teste final")
 
     # Comando: scan
     scan_parser = subparsers.add_parser("scan", help="Executar scan de vulnerabilidades")
