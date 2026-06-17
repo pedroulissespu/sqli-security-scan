@@ -50,6 +50,12 @@ python main.py train [opções]
 | `--epochs` | `500` | Número de épocas de treinamento |
 | `--batch-size` | `256` | Tamanho do batch |
 | `--resume` | — | Caminho de um checkpoint para continuar o treinamento |
+| `--train-ratio` | `0.7` | Proporção do conjunto de treino |
+| `--val-ratio` | `0.15` | Proporção do conjunto de validação |
+| `--test-ratio` | `0.15` | Proporção do conjunto de teste |
+| `--split-seed` | `42` | Semente aleatória da divisão treino/validação/teste |
+| `--validation-max-batches` | `8` | Máximo de batches usados na validação por época |
+| `--test-max-batches` | — | Máximo de batches usados no teste final |
 
 #### Exemplos
 
@@ -193,3 +199,62 @@ SQLi Security Scan/
 ```
 
 ---
+
+## Integração com CI/CD
+
+### Uso como GitHub Action
+
+Adicione ao workflow do seu repositório:
+
+```yaml
+- name: SQLi Security Scan
+  id: sqli-scan
+  uses: pedroulissespu/sqli-security-scan@v1.0.1
+  with:
+    swagger-url: "docs/swagger.yaml"       # Caminho local ou URL do Swagger
+    base-url: "http://localhost:8000"       # URL da API alvo
+    num-payloads: "200"                     # Payloads por endpoint (padrão: 200)
+    temperature: "0.7"                      # Variação dos payloads (padrão: 0.7)
+    report-path: "reports/scan_report.json" # Caminho do relatório
+    auth-token: ${{ secrets.API_TOKEN }}    # Token de autenticação (opcional)
+    fail-on-vuln: "true"                   # Falhar pipeline se vulnerável (padrão: true)
+```
+
+#### Inputs
+
+| Input | Obrigatório | Padrão | Descrição |
+|-------|-------------|--------|-----------|
+| `swagger-url` | Sim | — | URL ou caminho do arquivo Swagger/OpenAPI |
+| `base-url` | Sim | — | URL base da API alvo |
+| `num-payloads` | Não | `200` | Número de payloads por endpoint |
+| `temperature` | Não | `0.7` | Temperatura da geração (0.1 a 1.0) |
+| `report-path` | Não | `reports/scan_report.json` | Caminho do relatório |
+| `auth-token` | Não | — | Token de autenticação (ex: `Bearer abc123`) |
+| `fail-on-vuln` | Não | `true` | Falhar o pipeline se vulnerabilidades forem detectadas |
+| `python-version` | Não | `3.11` | Versão do Python |
+
+#### Outputs
+
+| Output | Descrição |
+|--------|-----------|
+| `vulnerable` | `true` / `false` |
+| `total-attacks` | Total de payloads enviados |
+| `true-positives` | Número de verdadeiros positivos |
+| `precision` | VP / (VP + FP) |
+| `efficacy` | VP / total de ataques |
+| `execution-time` | Tempo em segundos |
+| `report-path` | Caminho do relatório gerado |
+
+### Integração automática
+
+Quando executado em ambiente GitHub Actions (variável `GITHUB_OUTPUT` presente), o comando `scan` exporta automaticamente as seguintes outputs:
+
+- `vulnerable` — `true` / `false`
+- `total-attacks`
+- `true-positives`
+- `precision`
+- `efficacy`
+- `execution-time`
+- `report-path`
+
+O processo retorna código de saída `1` se vulnerabilidades forem encontradas, permitindo falhar o pipeline automaticamente.
