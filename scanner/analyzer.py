@@ -128,7 +128,6 @@ def analyze_response(result):
     url = result.get("url", "").lower()
     response_text = result.get("response", "").lower()
     cleaned = _strip_payload_reflection(response_text, payload, url)
-    status_code = result.get("status", 0)
 
     # Verificar padrões de erro de banco de dados
     for pattern in DB_ERROR_PATTERNS:
